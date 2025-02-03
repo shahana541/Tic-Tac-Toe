@@ -1,111 +1,178 @@
-import java.util.Scanner;
-import java.util.Scanner;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import javax.sound.sampled.*;
 
-public class TicTacToe {
-    // Data members
-    private static char[][] board = new char[5][5];
-    private static char currentPlayer = 'X';
+        public class TicTacToe {
+            private JFrame frame;
+            private JButton[][] buttons;
+            private char[][] board;
+            private String playerX, playerO, currentPlayerName;
+            private char currentPlayer = 'X';
+            private Clip backgroundMusic;
 
-    // ANSI color codes
-    private static final String RED = "\u001B[31m";   // Red color for 'X'
-    private static final String BLUE = "\u001B[34m";  // Blue color for 'O'
-    private static final String RESET = "\u001B[0m";  // Reset to default color
+            public TicTacToe() {
+                // Get Player Names
+                playerX = JOptionPane.showInputDialog("Enter Player 1 Name (X):");
+                playerO = JOptionPane.showInputDialog("Enter Player 2 Name (O):");
+                currentPlayerName = playerX;
 
-    // Main method
-    public static void main(String[] args) {
-        initializeBoard(); // Fill the board with empty spaces
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Welcome to 5×5 Tic-Tac-Toe!");
+                // Create Game Frame
+                frame = new JFrame("Tic-Tac-Toe 5x5");
+                frame.setSize(500, 500);
+                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                frame.setLayout(new BorderLayout());
 
-        int moves = 0; // Count the number of moves
+                // Game Heading
+                JLabel title = new JLabel("🎮 Tic-Tac-Toe 🎮", JLabel.CENTER);
+                title.setFont(new Font("Arial", Font.BOLD, 24));
+                title.setForeground(Color.GREEN);
+                frame.add(title, BorderLayout.NORTH);
 
-        while (true) {
-            displayBoard();
-            System.out.println("Player " + currentPlayer + ", enter your move (row [0-4] and column [0-4]): ");
+                // Set up board and buttons
+                buttons = new JButton[5][5];
+                board = new char[5][5];
+                initializeBoard();
+                JPanel panel = new JPanel(new GridLayout(5, 5));
+                createButtons(panel);
+                frame.add(panel, BorderLayout.CENTER);
 
-            int row = scanner.nextInt();
-            int col = scanner.nextInt();
+                // Play Background Music
+                playBackgroundMusic("background.wav"); // Background music file
 
-            if (makeMove(row, col)) {
-                moves++;
+                // Show frame
+                frame.setVisible(true);
+            }
 
-                if (checkWinner()) {
-                    displayBoard();
-                    System.out.println("🎉 Player " + currentPlayer + " wins! 🎉");
-                    break;
+            private void initializeBoard() {
+                for (int i = 0; i < 5; i++) {
+                    for (int j = 0; j < 5; j++) {
+                        board[i][j] = ' ';
+                    }
+                }
+            }
+
+            private void createButtons(JPanel panel) {
+                for (int i = 0; i < 5; i++) {
+                    for (int j = 0; j < 5; j++) {
+                        buttons[i][j] = new JButton();
+                        buttons[i][j].setFont(new Font("Arial", Font.BOLD, 36));
+                        buttons[i][j].setFocusPainted(false);
+                        buttons[i][j].setBackground(Color.LIGHT_GRAY);
+
+                        final int row = i;
+                        final int col = j;
+
+                        buttons[i][j].addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                if (board[row][col] == ' ') {
+                                    board[row][col] = currentPlayer;
+                                    buttons[row][col].setText(String.valueOf(currentPlayer));
+                                    buttons[row][col].setForeground(currentPlayer == 'X' ? Color.RED : Color.BLUE);
+
+                                    playSound("click.wav"); // Play click sound
+
+                                    if (checkWinner()) {
+                                        showWinner();
+                                        return;
+                                    }
+                                    switchPlayer();
+                                }
+                            }
+                        });
+
+                        panel.add(buttons[i][j]);
+                    }
+                }
+            }
+
+            private boolean checkWinner() {
+                for (int i = 0; i < 5; i++) {
+                    if ((board[i][0] == currentPlayer && board[i][1] == currentPlayer && board[i][2] == currentPlayer &&
+                            board[i][3] == currentPlayer && board[i][4] == currentPlayer) ||
+                            (board[0][i] == currentPlayer && board[1][i] == currentPlayer && board[2][i] == currentPlayer &&
+                                    board[3][i] == currentPlayer && board[4][i] == currentPlayer)) {
+                        return true;
+                    }
                 }
 
-                if (moves == 25) { // Check if the board is full
-                    displayBoard();
-                    System.out.println("It's a draw!");
-                    break;
+                if ((board[0][0] == currentPlayer && board[1][1] == currentPlayer && board[2][2] == currentPlayer &&
+                        board[3][3] == currentPlayer && board[4][4] == currentPlayer) ||
+                        (board[0][4] == currentPlayer && board[1][3] == currentPlayer && board[2][2] == currentPlayer &&
+                                board[3][1] == currentPlayer && board[4][0] == currentPlayer)) {
+                    return true;
                 }
 
-                switchPlayer(); // Change the current player
-            } else {
-                System.out.println("❌ Invalid move. Try again.");
+                return false;
             }
-        }
-    }
 
-    // Initialize the board with empty spaces
-    private static void initializeBoard() {
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < 5; j++) {
-                board[i][j] = ' ';
-            }
-        }
-    }
+            private void showWinner() {
+                playSound("win.wav"); // Play winning sound
+                int option = JOptionPane.showOptionDialog(frame, "🎉 " + currentPlayerName + " wins! 🎉\n\nDo you want to restart or exit?",
+                        "Game Over", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE, null,
+                        new Object[] {"Restart", "Exit"}, "Restart");
 
-    // Display the board with colors and better formatting
-    private static void displayBoard() {
-        System.out.println("\n  0   1   2   3   4"); // Column indexes
-        System.out.println("  -------------------");
-        for (int i = 0; i < 5; i++) {
-            System.out.print(i + "|"); // Row index
-            for (int j = 0; j < 5; j++) {
-                // Print 'X' in Red, 'O' in Blue, Empty spaces normally
-                if (board[i][j] == 'X') {
-                    System.out.print(" " + RED + "X" + RESET + " ");
-                } else if (board[i][j] == 'O') {
-                    System.out.print(" " + BLUE + "O" + RESET + " ");
+                if (option == JOptionPane.YES_OPTION) {
+                    restartGame();
                 } else {
-                    System.out.print("   ");
+                    backgroundMusic.stop();
+                    frame.dispose(); // Close the game
                 }
-                if (j < 4) System.out.print("|"); // Column separator
             }
-            System.out.println("\n  -------------------"); // Row separator
-        }
-    }
 
-    // Handle a player's move
-    private static boolean makeMove(int row, int col) {
-        if (row >= 0 && row < 5 && col >= 0 && col < 5 && board[row][col] == ' ') {
-            board[row][col] = currentPlayer;
-            return true;
-        }
-        return false; // Move is invalid
-    }
+            private void restartGame() {
+                // Reset the board and buttons
+                for (int i = 0; i < 5; i++) {
+                    for (int j = 0; j < 5; j++) {
+                        board[i][j] = ' ';
+                        buttons[i][j].setText("");
+                        buttons[i][j].setEnabled(true);
+                    }
+                }
 
-    // Check if the current player has won
-    private static boolean checkWinner() {
-        // Check rows and columns
-        for (int i = 0; i < 5; i++) {
-            if ((board[i][0] == currentPlayer && board[i][1] == currentPlayer && board[i][2] == currentPlayer && board[i][3] == currentPlayer && board[i][4] == currentPlayer) || // Row
-                    (board[0][i] == currentPlayer && board[1][i] == currentPlayer && board[2][i] == currentPlayer && board[3][i] == currentPlayer && board[4][i] == currentPlayer)) { // Column
-                return true;
+                // Reset the current player
+                currentPlayer = 'X';
+                currentPlayerName = playerX;
+            }
+
+            private void switchPlayer() {
+                if (currentPlayer == 'X') {
+                    currentPlayer = 'O';
+                    currentPlayerName = playerO;
+                } else {
+                    currentPlayer = 'X';
+                    currentPlayerName = playerX;
+                }
+            }
+
+            private void playSound(String soundFile) {
+                try {
+                    File file = new File("sounds/" + soundFile); // Reference the sounds folder
+                    AudioInputStream audioStream = AudioSystem.getAudioInputStream(file);
+                    Clip clip = AudioSystem.getClip();
+                    clip.open(audioStream);
+                    clip.start();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            private void playBackgroundMusic(String musicFile) {
+                try {
+                    File file = new File("sounds/" + musicFile); // Reference the sounds folder
+                    AudioInputStream audioStream = AudioSystem.getAudioInputStream(file);
+                    backgroundMusic = AudioSystem.getClip();
+                    backgroundMusic.open(audioStream);
+                    backgroundMusic.loop(Clip.LOOP_CONTINUOUSLY); // Loop music forever
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            public static void main(String[] args) {
+                SwingUtilities.invokeLater(() -> new TicTacToe());
             }
         }
-        // Check diagonals
-        if ((board[0][0] == currentPlayer && board[1][1] == currentPlayer && board[2][2] == currentPlayer && board[3][3] == currentPlayer && board[4][4] == currentPlayer) || // Top-left to bottom-right
-                (board[0][4] == currentPlayer && board[1][3] == currentPlayer && board[2][2] == currentPlayer && board[3][1] == currentPlayer && board[4][0] == currentPlayer)) { // Top-right to bottom-left
-            return true;
-        }
-        return false; // No winner
-    }
-
-    // Switch to the other player
-    private static void switchPlayer() {
-        currentPlayer = (currentPlayer == 'X') ? 'O' : 'X';
-    }
-}
